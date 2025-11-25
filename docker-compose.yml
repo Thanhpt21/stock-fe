@@ -1,0 +1,12 @@
+services:
+  frontend:
+    build: .
+    container_name: edu-frontend
+    ports:
+      - "5001:5001"  
+    env_file:
+      - .env.prod
+    environment:
+      - NODE_ENV=production
+      - PORT=5001  
+    restart: unless-stopped
