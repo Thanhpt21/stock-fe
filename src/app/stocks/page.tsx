@@ -2,22 +2,17 @@
 'use client';
 
 import { useState } from 'react';
-import { StockTable } from '@/components/stocks/StockTable';
 import { StockCard } from '@/components/stocks/StockCard';
 import { StockSearch } from '@/components/stocks/StockSearch';
-import { StockChart } from '@/components/stocks/StockChart';
 import { useBatchStockPrices } from '@/hooks/stock/useBatchStockPrices';
 import { useStockSearch } from '@/hooks/stock/useStockSearch';
 import { useMarketOverview } from '@/hooks/stock/useMarketOverview';
 import { StockData } from '@/types/stock';
 
-type ViewMode = 'table' | 'grid' | 'chart';
-
 // Danh sách cổ phiếu mặc định để hiển thị
 const DEFAULT_STOCKS = ['VIC', 'VNM', 'HPG', 'SSI', 'FPT', 'ACB', 'SHB', 'OCH'];
 
 export default function StocksPage() {
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -109,12 +104,13 @@ export default function StocksPage() {
 
           {/* Search */}
           <div className="mb-6 max-w-md">
-            <div className="mb-6 max-w-md">
-              <StockSearch onStockSelect={handleStockSelect} />
-            </div>
+            <StockSearch 
+              onStockSelect={handleStockSelect} 
+              onSearch={handleSearch}
+            />
           </div>
 
-          {/* View Toggle và thông tin */}
+          {/* Thông tin số lượng */}
           <div className="flex justify-between items-center mb-6">
             <div className="text-sm text-gray-600">
               Hiển thị {displayStocks?.length || 0} mã chứng khoán
@@ -123,38 +119,6 @@ export default function StocksPage() {
                   • Tìm thấy {searchResults.total} kết quả
                 </span>
               )}
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setViewMode('chart')}
-                className={`px-4 py-2 rounded-lg ${
-                  viewMode === 'chart' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-gray-700 border'
-                }`}
-              >
-                Biểu đồ
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-4 py-2 rounded-lg ${
-                  viewMode === 'grid' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-gray-700 border'
-                }`}
-              >
-                Lưới
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`px-4 py-2 rounded-lg ${
-                  viewMode === 'table' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-gray-700 border'
-                }`}
-              >
-                Bảng
-              </button>
             </div>
           </div>
         </div>
@@ -167,61 +131,69 @@ export default function StocksPage() {
           </div>
         )}
 
-        {/* Content */}
+        {/* Grid View */}
         {!isLoading && (
-          <>
-            {viewMode === 'chart' && selectedStock ? (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold mb-4">
-                  Biểu đồ {selectedStock.symbol}
-                </h2>
-                <StockChart stock={selectedStock} />
-              </div>
-            ) : viewMode === 'chart' && !selectedStock ? (
-              <div className="text-center py-8 text-gray-500">
-                Vui lòng chọn một cổ phiếu để xem biểu đồ
-              </div>
-            ) : viewMode === 'table' ? (
-              <StockTable 
-                stocks={displayStocks || []} 
-                onStockSelect={handleStockSelect}
-                isRefreshing={stocksRefreshing}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {(displayStocks || []).map((stock: StockData) => (
+              <StockCard 
+                key={stock.symbol} 
+                stock={stock} 
+                onSelect={handleStockSelect}
+                isSelected={selectedStock?.symbol === stock.symbol}
               />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {(displayStocks || []).map((stock: StockData) => (
-                  <StockCard 
-                    key={stock.symbol} 
-                    stock={stock} 
-                    onSelect={handleStockSelect}
-                    isSelected={selectedStock?.symbol === stock.symbol}
-                  />
-                ))}
-              </div>
-            )}
-          </>
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && (!displayStocks || displayStocks.length === 0) && (
+          <div className="text-center py-12 bg-white rounded-lg shadow">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy cổ phiếu</h3>
+            <p className="text-gray-500">
+              {searchQuery ? 'Thử tìm kiếm với từ khóa khác' : 'Đang tải dữ liệu thị trường...'}
+            </p>
+          </div>
         )}
 
         {/* Selected Stock Details */}
-        {selectedStock && viewMode !== 'chart' && (
+        {selectedStock && (
           <div className="mt-8 bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">
-              Thông tin chi tiết {selectedStock.symbol}
-            </h2>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {selectedStock.symbol}
+                </h2>
+                <p className="text-gray-600">{selectedStock.companyName || 'Công ty cổ phần'}</p>
+              </div>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {selectedStock.market}
+              </span>
+            </div>
+            
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <span className="text-gray-600">Giá hiện tại:</span>
-                <div className={`font-bold ${
+                <div className={`text-lg font-bold ${
                   selectedStock.change >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {selectedStock.price.toLocaleString()} 
-                  <span className="ml-2">
-                    ({selectedStock.change >= 0 ? '+' : ''}{selectedStock.change})
-                  </span>
+                  {selectedStock.price.toLocaleString()} ₫
                 </div>
               </div>
               <div>
                 <span className="text-gray-600">Thay đổi:</span>
+                <div className={`font-bold ${
+                  selectedStock.change >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {selectedStock.change >= 0 ? '+' : ''}{selectedStock.change} ₫
+                </div>
+              </div>
+              <div>
+                <span className="text-gray-600">% Thay đổi:</span>
                 <div className={`font-bold ${
                   selectedStock.changePercent >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
@@ -234,9 +206,27 @@ export default function StocksPage() {
                   {(selectedStock.volume / 1000).toFixed(0)}K
                 </div>
               </div>
-              <div>
-                <span className="text-gray-600">Thị trường:</span>
-                <div className="font-bold">{selectedStock.market}</div>
+            </div>
+
+            {/* Additional Info */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Giá mở cửa:</span>
+                  <span className="ml-2 font-medium">{selectedStock.open?.toLocaleString() || 'N/A'} ₫</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Giá cao nhất:</span>
+                  <span className="ml-2 font-medium text-green-600">{selectedStock.high?.toLocaleString() || 'N/A'} ₫</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Giá thấp nhất:</span>
+                  <span className="ml-2 font-medium text-red-600">{selectedStock.low?.toLocaleString() || 'N/A'} ₫</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Giá đóng cửa trước:</span>
+                  <span className="ml-2 font-medium">{selectedStock.previousClose?.toLocaleString() || 'N/A'} ₫</span>
+                </div>
               </div>
             </div>
           </div>

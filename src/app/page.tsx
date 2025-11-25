@@ -1,13 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { TrendingUp, BarChart3, Users, Shield, Clock, Zap, ArrowUp, ArrowDown, Eye, Calendar, DollarSign, PieChart, Activity, Heart, Plus } from 'lucide-react'
+import { TrendingUp, BarChart3, Users, Shield, Clock, Zap, ArrowUp, ArrowDown, Eye, Calendar, DollarSign, PieChart, Activity } from 'lucide-react'
 import { useBatchStockPrices } from '@/hooks/stock/useBatchStockPrices'
 import { useMarketOverview } from '@/hooks/stock/useMarketOverview'
 import { StockData } from '@/types/stock'
-import { Watchlist } from '@/types/watchlist.type'
-import { useWatchlists } from '@/hooks/watchlist/useWatchlists'
-import { useAddToWatchlist } from '@/hooks/watchlist/useAddToWatchlist'
 
 interface ChartData {
   time: string;
@@ -22,8 +19,6 @@ export default function StockHomePage() {
   const [activeTab, setActiveTab] = useState<'hose' | 'hnx' | 'upcom'>('hose');
   const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
   const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [showWatchlistModal, setShowWatchlistModal] = useState(false);
-  const [selectedStockForWatchlist, setSelectedStockForWatchlist] = useState<StockData | null>(null);
 
   // Lấy dữ liệu realtime
   const { 
@@ -33,18 +28,13 @@ export default function StockHomePage() {
     error: stocksError 
   } = useBatchStockPrices({
     symbols: DEFAULT_STOCKS,
-    refetchInterval: 3000, // 3 giây refresh
+    refetchInterval: 3000, // 5 giây refresh
   });
 
   // Lấy tổng quan thị trường realtime
   const { 
     data: marketOverview 
   } = useMarketOverview(10000); // 10 giây refresh
-
-  // Watchlist hooks
-  const { data: watchlists, isLoading: watchlistsLoading } = useWatchlists();
-  const addToWatchlist = useAddToWatchlist();
-  const { hasStockInAnyWatchlist, getDefaultWatchlist } = useWatchlists();
 
   // Lọc stocks theo market
   const stocks = realtimeStocks.filter((stock: StockData) => {
@@ -94,26 +84,6 @@ export default function StockHomePage() {
   const handleStockSelect = (stock: StockData) => {
     setSelectedStock(stock);
     setChartData(generateChartData(stock.price, stock.price * 0.02));
-  };
-
-  const handleAddToWatchlist = (stock: StockData, watchlistId?: number) => {
-    const targetWatchlistId = watchlistId || getDefaultWatchlist()?.id;
-    
-    if (!targetWatchlistId) {
-      // Nếu không có watchlist nào, hiển thị modal chọn watchlist
-      setSelectedStockForWatchlist(stock);
-      setShowWatchlistModal(true);
-      return;
-    }
-
-    addToWatchlist.mutate({
-      watchlistId: targetWatchlistId,
-      data: { symbol: stock.symbol }
-    });
-  };
-
-  const handleQuickAddToWatchlist = (stock: StockData) => {
-    handleAddToWatchlist(stock);
   };
 
   const formatNumber = (num: number): string => {
@@ -284,22 +254,19 @@ export default function StockHomePage() {
                       <div
                         key={stock.symbol}
                         onClick={() => handleStockSelect(stock)}
-                        className={`p-4 border-b border-gray-100 cursor-pointer transition-colors group relative ${
+                        className={`p-4 border-b border-gray-100 cursor-pointer transition-colors ${
                           selectedStock?.symbol === stock.symbol 
                             ? 'bg-blue-50 border-blue-200' 
                             : 'hover:bg-gray-50'
                         }`}
                       >
                         <div className="flex justify-between items-center">
-                          <div className="flex-1">
+                          <div>
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-gray-900">{stock.symbol}</span>
                               <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
                                 {stock.market}
                               </span>
-                              {hasStockInAnyWatchlist(stock.symbol) && (
-                                <Heart className="w-4 h-4 text-red-500 fill-red-500" />
-                              )}
                             </div>
                             <p className="text-sm text-gray-600 truncate">{stock.companyName || 'Công ty cổ phần'}</p>
                           </div>
@@ -312,18 +279,6 @@ export default function StockHomePage() {
                             </div>
                           </div>
                         </div>
-                        
-                        {/* Quick Add Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleQuickAddToWatchlist(stock);
-                          }}
-                          className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-white shadow-sm hover:bg-gray-50"
-                          title="Thêm vào watchlist"
-                        >
-                          <Plus className="w-4 h-4 text-gray-600" />
-                        </button>
                       </div>
                     ))}
                   </div>
@@ -341,36 +296,24 @@ export default function StockHomePage() {
                           <span className="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
                             {selectedStock.market}
                           </span>
-                          {hasStockInAnyWatchlist(selectedStock.symbol) && (
-                            <Heart className="w-5 h-5 text-red-500 fill-red-500" />
-                          )}
                         </div>
                         <p className="text-gray-600">{selectedStock.companyName || 'Công ty cổ phần'}</p>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={() => handleQuickAddToWatchlist(selectedStock)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Thêm vào Watchlist
-                        </button>
-                        <div className={`text-right ${
-                          selectedStock.change >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          <div className="text-3xl font-bold">{formatNumber(selectedStock.price)}</div>
-                          <div className="flex items-center justify-end gap-1">
-                            {selectedStock.change >= 0 ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
-                            <span className="font-semibold">
-                              {selectedStock.change >= 0 ? '+' : ''}{formatNumber(selectedStock.change)} 
-                              ({selectedStock.change >= 0 ? '+' : ''}{selectedStock.changePercent}%)
-                            </span>
-                          </div>
+                      <div className={`text-right ${
+                        selectedStock.change >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        <div className="text-3xl font-bold">{formatNumber(selectedStock.price)}</div>
+                        <div className="flex items-center justify-end gap-1">
+                          {selectedStock.change >= 0 ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+                          <span className="font-semibold">
+                            {selectedStock.change >= 0 ? '+' : ''}{formatNumber(selectedStock.change)} 
+                            ({selectedStock.change >= 0 ? '+' : ''}{selectedStock.changePercent}%)
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Chart Container - Giữ nguyên */}
+                    {/* Chart Container */}
                     <div className="relative">
                       <div className="h-64 bg-gray-50 rounded-lg p-4">
                         {/* Y-axis labels */}
@@ -453,7 +396,7 @@ export default function StockHomePage() {
         </div>
       </section>
 
-       {/* Market Data Section - Realtime */}
+      {/* Market Data Section - Realtime */}
       <section id="market" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -671,47 +614,6 @@ export default function StockHomePage() {
           </div>
         </div>
       </section>
-
-      {/* Watchlist Selection Modal */}
-      {showWatchlistModal && selectedStockForWatchlist && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-96">
-            <h3 className="text-lg font-semibold mb-4">Chọn Watchlist</h3>
-            <p className="text-gray-600 mb-4">Thêm {selectedStockForWatchlist.symbol} vào watchlist nào?</p>
-            
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {watchlists?.map((watchlist: Watchlist) => (
-                <button
-                  key={watchlist.id}
-                  onClick={() => {
-                    handleAddToWatchlist(selectedStockForWatchlist, watchlist.id);
-                    setShowWatchlistModal(false);
-                    setSelectedStockForWatchlist(null);
-                  }}
-                  className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="font-medium">{watchlist.name}</div>
-                  <div className="text-sm text-gray-500">
-                    {(watchlist.items?.length ?? 0)} mã
-                  </div>
-                </button>
-              ))}
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowWatchlistModal(false);
-                  setSelectedStockForWatchlist(null);
-                }}
-                className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Hủy
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
