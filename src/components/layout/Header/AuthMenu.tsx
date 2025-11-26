@@ -8,7 +8,7 @@ const AuthMenu = () => {
   const { currentUser } = useAuth();
 
   const authenticatedMenuItems = [
-    { label: 'Giao dịch', href: '/trading', icon: <ThunderboltOutlined /> },
+
     { label: 'Watchlist', href: '/watchlist', icon: <HeartOutlined /> },
   ];
 

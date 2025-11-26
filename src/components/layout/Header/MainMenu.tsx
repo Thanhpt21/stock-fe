@@ -10,8 +10,8 @@ const MainMenu = ({ pathname }: MainMenuProps) => {
   const mainMenuItems = [
     { label: 'Trang chủ', href: '/' },
     { label: 'Thị trường', href: '/stocks' },
-    { label: 'Bảng giá', href: '/quotes' },
-    { label: 'Phân tích', href: '/analysis' },
+    { label: 'Giao dịch', href: '/trading' },
+    // { label: 'Phân tích', href: '/analysis' },
     { label: 'Tin tức', href: '/news' },
   ];
 

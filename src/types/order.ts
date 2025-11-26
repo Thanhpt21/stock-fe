@@ -47,6 +47,7 @@ export interface CreateOrderRequest {
   price?: number
   stopPrice?: number
   notes?: string
+  currentPrice: number;
 }
 
 export interface UpdateOrderRequest {
