@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useAuth } from '@/context/AuthContext';
+import { useLogout } from '@/hooks/auth/useLogout';
 
 const UserMenu = () => {
   const router = useRouter();
   const { currentUser } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+    const { logoutUser, isPending: isLogoutPending } = useLogout();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -22,13 +24,7 @@ const UserMenu = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.refresh();
-    router.push('/');
-  };
-
+  const handleLogout = () => logoutUser();
   if (!currentUser) return null;
 
   const userMenuItems = [

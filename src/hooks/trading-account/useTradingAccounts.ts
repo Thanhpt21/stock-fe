@@ -11,5 +11,8 @@ export const useTradingAccounts = (userId: number) => {
       return res.data.data
     },
     enabled: !!userId,
+    refetchInterval: 3000, // ✅ Polling mỗi 5 giây
+    refetchIntervalInBackground: true, // ✅ Tiếp tục polling khi tab không active
+    staleTime: 3000, // ✅ Data được coi là stale sau 3 giây
   })
 }

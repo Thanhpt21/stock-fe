@@ -45,13 +45,13 @@ const Header = () => {
             ) : (
               <div className="flex space-x-2">
                 <button 
-                  onClick={() => router.push('/auth/login')}
+                  onClick={() => router.push('/login')}
                   className="px-4 py-2 text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors"
                 >
                   Đăng nhập
                 </button>
                 <button 
-                  onClick={() => router.push('/auth/register')}
+                  onClick={() => router.push('/register')}
                   className="px-6 py-2 text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
                 >
                   Đăng ký

@@ -1,4 +1,4 @@
-// components/trading/OrderPanel.tsx
+// components/trading/OrderPanel.tsx - CHỈ HIỂN THỊ MARKET
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -23,18 +23,12 @@ export const OrderPanel = ({ symbol, currentPrice, accountId }: OrderPanelProps)
   const createOrderMutation = useCreateOrder();
 
   // Đảm bảo currentPrice luôn có giá trị hợp lệ
-  const safeCurrentPrice = currentPrice || 45000; // Fallback giá mặc định
+  const safeCurrentPrice = currentPrice;
 
   // Reset prices when currentPrice changes
   useEffect(() => {
     setPrice(safeCurrentPrice);
   }, [safeCurrentPrice]);
-
-  useEffect(() => {
-    if (orderType === OrderType.STOP || orderType === OrderType.STOP_LIMIT) {
-      setStopPrice(side === OrderSide.BUY ? safeCurrentPrice * 1.02 : safeCurrentPrice * 0.98);
-    }
-  }, [orderType, safeCurrentPrice, side]);
 
   // Validate form
   const validateForm = (): boolean => {
@@ -47,43 +41,8 @@ export const OrderPanel = ({ symbol, currentPrice, accountId }: OrderPanelProps)
       newErrors.quantity = 'Số lượng phải là bội số của 100';
     }
 
-    // Price validation based on order type
-    if (orderType === OrderType.LIMIT && (!price || price <= 0)) {
-      newErrors.price = 'Vui lòng nhập giá hợp lệ';
-    }
-
-    if (orderType === OrderType.STOP) {
-      if (!stopPrice || stopPrice <= 0) {
-        newErrors.stopPrice = 'Vui lòng nhập giá kích hoạt hợp lệ';
-      } else {
-        const isValidStop = side === OrderSide.BUY 
-          ? stopPrice > safeCurrentPrice
-          : stopPrice < safeCurrentPrice;
-        
-        if (!isValidStop) {
-          newErrors.stopPrice = side === OrderSide.BUY 
-            ? 'Giá kích hoạt phải cao hơn giá hiện tại'
-            : 'Giá kích hoạt phải thấp hơn giá hiện tại';
-        }
-      }
-    }
-
-    if (orderType === OrderType.STOP_LIMIT) {
-      if (!stopPrice || stopPrice <= 0) {
-        newErrors.stopPrice = 'Vui lòng nhập giá kích hoạt hợp lệ';
-      }
-      if (!price || price <= 0) {
-        newErrors.price = 'Vui lòng nhập giá giới hạn hợp lệ';
-      }
-      if (stopPrice && price) {
-        if (side === OrderSide.BUY && price <= stopPrice) {
-          newErrors.price = 'Giá giới hạn phải cao hơn giá kích hoạt';
-        }
-        if (side === OrderSide.SELL && price >= stopPrice) {
-          newErrors.price = 'Giá giới hạn phải thấp hơn giá kích hoạt';
-        }
-      }
-    }
+    // Với lệnh MARKET, không cần validate price
+    // Các loại lệnh khác đã bị ẩn nên không cần validate
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -95,14 +54,11 @@ export const OrderPanel = ({ symbol, currentPrice, accountId }: OrderPanelProps)
     const orderData: CreateOrderRequest = {
       accountId,
       symbol,
-      orderType,
+      orderType: OrderType.MARKET, // Luôn là MARKET
       side,
       quantity,
       currentPrice: safeCurrentPrice,
-      ...(orderType === OrderType.LIMIT && { price }),
-      ...((orderType === OrderType.STOP || orderType === OrderType.STOP_LIMIT) && { stopPrice }),
-      ...(orderType === OrderType.STOP_LIMIT && { price }),
-      notes: `Đặt lệnh ${orderType} ${side} ${quantity} ${symbol}`,
+      notes: `Đặt lệnh ${OrderType.MARKET} ${side} ${quantity} ${symbol}`,
     };
 
     createOrderMutation.mutate(orderData, {
@@ -121,25 +77,8 @@ export const OrderPanel = ({ symbol, currentPrice, accountId }: OrderPanelProps)
     });
   };
 
-  // Calculate costs - FIXED: Đảm bảo không bị undefined
-  const getOrderPrice = (): number => {
-    const safePrice = price || safeCurrentPrice;
-    
-    switch (orderType) {
-      case OrderType.MARKET: 
-        return safeCurrentPrice;
-      // case OrderType.LIMIT: 
-      //   return safePrice;
-      // case OrderType.STOP: 
-      //   return safeCurrentPrice; // Market price when triggered
-      // case OrderType.STOP_LIMIT: 
-      //   return safePrice;
-      default: 
-        return safeCurrentPrice;
-    }
-  };
-
-  const orderPrice = getOrderPrice();
+  // Calculate costs - CHỈ DÙNG MARKET PRICE
+  const orderPrice = safeCurrentPrice;
   const totalAmount = quantity * orderPrice;
   const estimatedFee = Math.round(totalAmount * 0.0015); // 0.15% trading fee
   const tax = Math.round(totalAmount * 0.001); // 0.1% tax
@@ -149,12 +88,9 @@ export const OrderPanel = ({ symbol, currentPrice, accountId }: OrderPanelProps)
     return new Intl.NumberFormat('vi-VN').format(Math.round(amount));
   };
 
-  // Order type configuration
+  // Order type configuration - CHỈ MARKET
   const orderTypeConfig = {
     [OrderType.MARKET]: { label: 'Thị trường', description: 'Khớp lệnh ngay ở giá tốt nhất' },
-    [OrderType.LIMIT]: { label: 'Giới hạn', description: 'Chỉ khớp ở mức giá chỉ định' },
-    [OrderType.STOP]: { label: 'Dừng', description: 'Thành lệnh thị trường khi đạt giá kích hoạt' },
-    [OrderType.STOP_LIMIT]: { label: 'Dừng giới hạn', description: 'Thành lệnh giới hạn khi đạt giá kích hoạt' }
   };
 
   // Order side configuration
@@ -163,48 +99,21 @@ export const OrderPanel = ({ symbol, currentPrice, accountId }: OrderPanelProps)
     [OrderSide.SELL]: { label: 'BÁN', color: 'red' }
   };
 
-  // Available order types for rendering
-  const orderTypes = [OrderType.MARKET, OrderType.LIMIT, OrderType.STOP, OrderType.STOP_LIMIT];
+  // Available order types for rendering - CHỈ MARKET
+  const orderTypes = [OrderType.MARKET];
   const orderSides = [OrderSide.BUY, OrderSide.SELL];
-
-  console.log('🐛 DEBUG OrderPanel:', {
-  currentPrice,
-  safeCurrentPrice,
-  price,
-  orderType,
-  quantity,
-  orderPrice,
-  totalAmount,
-  calculated: {
-    orderPrice: getOrderPrice(),
-    total: quantity * getOrderPrice(),
-    fee: quantity * getOrderPrice() * 0.0015,
-    tax: quantity * getOrderPrice() * 0.001
-  }
-});
-
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4">
       <h3 className="font-semibold text-gray-900 mb-2">Đặt lệnh {symbol}</h3>
       <p className="text-sm text-gray-500 mb-4">Giá hiện tại: {formatMoney(safeCurrentPrice)}</p>
       
-      {/* Order Type Tabs */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        {orderTypes.map((type) => (
-          <button
-            key={type}
-            onClick={() => setOrderType(type)}
-            className={`p-2 text-xs font-medium rounded-lg border transition-colors ${
-              orderType === type
-                ? 'bg-blue-50 border-blue-500 text-blue-700'
-                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <div className="font-semibold">{orderTypeConfig[type].label}</div>
-            <div className="text-[10px] opacity-75 mt-1">{orderTypeConfig[type].description}</div>
-          </button>
-        ))}
+      {/* Order Type Tabs - CHỈ HIỂN THỊ MARKET */}
+      <div className="mb-4">
+        <div className="p-3 bg-blue-50 border border-blue-500 text-blue-700 rounded-lg text-center">
+          <div className="font-semibold">{orderTypeConfig[OrderType.MARKET].label}</div>
+          <div className="text-xs opacity-75 mt-1">{orderTypeConfig[OrderType.MARKET].description}</div>
+        </div>
       </div>
 
       {/* Buy/Sell Toggle */}
@@ -261,58 +170,6 @@ export const OrderPanel = ({ symbol, currentPrice, accountId }: OrderPanelProps)
           ))}
         </div>
       </div>
-
-      {/* Price Input for LIMIT and STOP_LIMIT */}
-      {(orderType === OrderType.LIMIT || orderType === OrderType.STOP_LIMIT) && (
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {orderType === OrderType.LIMIT ? 'Giá đặt' : 'Giá giới hạn'}
-          </label>
-          <input
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(Number(e.target.value))}
-            className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-              errors.price ? 'border-red-300 bg-red-50' : 'border-gray-300'
-            }`}
-            min="0"
-            step="100"
-            placeholder="Nhập giá"
-          />
-          {errors.price && (
-            <p className="mt-1 text-sm text-red-600">{errors.price}</p>
-          )}
-        </div>
-      )}
-
-      {/* Stop Price Input for STOP and STOP_LIMIT */}
-      {(orderType === OrderType.STOP || orderType === OrderType.STOP_LIMIT) && (
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Giá kích hoạt
-          </label>
-          <input
-            type="number"
-            value={stopPrice}
-            onChange={(e) => setStopPrice(Number(e.target.value))}
-            className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-              errors.stopPrice ? 'border-red-300 bg-red-50' : 'border-gray-300'
-            }`}
-            min="0"
-            step="100"
-            placeholder="Nhập giá kích hoạt"
-          />
-          {errors.stopPrice && (
-            <p className="mt-1 text-sm text-red-600">{errors.stopPrice}</p>
-          )}
-          <p className="mt-1 text-xs text-gray-500">
-            {side === OrderSide.BUY 
-              ? 'Lệnh sẽ kích hoạt khi giá ≥ giá kích hoạt' 
-              : 'Lệnh sẽ kích hoạt khi giá ≤ giá kích hoạt'
-            }
-          </p>
-        </div>
-      )}
 
       {/* Order Summary */}
       <div className="bg-gray-50 rounded-lg p-3 mb-4 space-y-2">

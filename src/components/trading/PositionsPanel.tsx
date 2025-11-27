@@ -14,15 +14,6 @@ export const PositionsPanel = ({ accountId }: { accountId: number }) => {
     }).format(amount);
   };
 
-  // Thêm debug để kiểm tra
-  console.log('🔍 PositionsPanel Debug:', {
-    accountId,
-    positions,
-    isLoading,
-    error,
-    positionsCount: positions?.length
-  });
-
   if (isLoading) {
     return (
       <div className="p-4">

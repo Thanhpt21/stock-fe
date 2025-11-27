@@ -15,10 +15,22 @@ export const login = async (body: LoginBody) => {
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) {
+   if (!res.ok) {
     throw new Error('Đăng nhập thất bại');
   }
 
-  return res.json();
+  const data = await res.json();
+
+  // Lưu thông tin vào localStorage
+  if (typeof window !== 'undefined') {
+    if (data.access_token) {
+      localStorage.setItem('access_token', data.access_token)
+    }
+    if (data.user && data.user.id) {
+      localStorage.setItem('userId', data.user.id.toString())
+    }
+  }
+
+  return data;
 };
 

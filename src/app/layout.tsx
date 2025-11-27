@@ -9,6 +9,7 @@ import dayjs from '@/utils/dayjs'
 
 // ✅ Set dayjs locale
 import 'dayjs/locale/vi'
+import ChatBox from '@/components/layout/Chatbox'
 dayjs.locale('vi')
 
 // ✅ Khởi tạo QueryClient một lần duy nhất
@@ -32,6 +33,7 @@ export default function RootLayout({
         <QueryClientProvider client={queryClient}>
             <AppContent>
               {children}
+              <ChatBox />
             </AppContent>
         </QueryClientProvider>
       </body>
